@@ -3,6 +3,7 @@
 [![Build Status](https://secure.travis-ci.org/dresende/node-orm2.png?branch=master)](http://travis-ci.org/dresende/node-orm2)
 [![](https://badge.fury.io/js/orm.png)](https://npmjs.org/package/orm)
 [![](https://gemnasium.com/dresende/node-orm2.png)](https://gemnasium.com/dresende/node-orm2)
+[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=dresende&url=https://github.com/dresende/node-orm2&title=ORM&language=&tags=github&category=software)
 
 ## Install
 
@@ -16,7 +17,7 @@ Tests are done using [Travis CI](https://travis-ci.org/) for node versions `0.6.
 tests locally.
 
 ```sh
-make
+npm test
 ```
 
 ## DBMS Support
@@ -25,14 +26,15 @@ make
 - PostgreSQL
 - Amazon Redshift
 - SQLite
+- MongoDB (beta, missing aggregation for now)
 
 ## Features
 
 - Create Models, sync, drop, bulk create, get, find, remove, count, aggregated functions
 - Create Model associations, find, check, create and remove
-- Define custom validations (several builtin validations, check instance properties before saving)
+- Define custom validations (several builtin validations, check instance properties before saving - see [enforce](http://github.com/dresende/node-enforce) for details)
 - Model instance caching and integrity (table rows fetched twice are the same object, changes to one change all)
-- Plugins: [MySQL FTS](http://dresende.github.io/node-orm-mysql-fts) , [Pagination](http://dresende.github.io/node-orm-paging) , [Transaction](http://dresende.github.io/node-orm-transaction)
+- Plugins: [MySQL FTS](http://dresende.github.io/node-orm-mysql-fts) , [Pagination](http://dresende.github.io/node-orm-paging) , [Transaction](http://dresende.github.io/node-orm-transaction), [Timestamps](http://github.com/SPARTAN563/node-orm-timestamps)
 
 ## Introduction
 
@@ -61,7 +63,7 @@ orm.connect("mysql://username:password@host/database", function (err, db) {
 			}
 		},
 		validations: {
-			age: orm.validators.rangeNumber(18, undefined, "under-age")
+			age: orm.enforce.ranges.number(18, undefined, "under-age")
 		}
 	});
 
@@ -89,8 +91,9 @@ var orm = require('orm');
 var app = express();
 
 app.use(orm.express("mysql://username:password@host/database", {
-	define: function (db, models) {
+	define: function (db, models, next) {
 		models.person = db.define("person", { ... });
+		next();
 	}
 }));
 app.listen(80);
@@ -105,83 +108,21 @@ You can call `orm.express` more than once to have multiple database connections.
 will be joined together in `req.models`. **Don't forget to use it before `app.use(app.router)`, preferably right after your
 assets public folder(s).**
 
+## Examples
+
+See `examples/anontxt` for an example express based app.
+
+## Documentation
+
+Documentation is moving to the [wiki](https://github.com/dresende/node-orm2/wiki/).
+
 ## Settings
 
-Settings are used to store key value pairs. A settings object is stored on the global orm object and on each database connection.
-
-```js
-var orm = require("orm");
-
-orm.settings.set("some.deep.value", 123);
-
-orm.connect("....", function (err, db) {
-	// db.settings is a snapshot of the settings at the moment
-	// of orm.connect(). changes to it don't affect orm.settings
-
-	console.log(db.settings.get("some.deep.value")); // 123
-	console.log(db.settings.get("some.deep"));       // { value: 123 }
-});
-```
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Settings).
 
 ## Connecting
 
-First, add the correct driver to your `package.json`:
-
- driver                | dependency
-:----------------------|:---------------------------
- mysql                 | `"mysql" : "2.0.0-alpha7"`
- postgres<br/>redshift | `"pg": "~1.0.0"`
- sqlite                | `"sqlite3" : "2.1.7"`
-
-These are the versions tested. Use others (older or newer) at your own risk.
-
-### Options
-
-You can pass in connection options either as a string:
-
-```js
-var orm = require("orm");
-
-orm.connect("mysql://username:password@host/database?pool=true", function (err, db) {
-	// ...
-});
-```
-
-**Note:** `pool` is only supported by mysql & postgres. When 'pool' is set to true, your database connections are cached so that connections can be reused, optimizing performance.
-
-**Note:** `strdates` is only supported by sqlite. When true, date fields are saved as strings, compatible with django
-
-Or as an object:
-
-```js
-var opts = {
-  database : "dbname",
-  protocol : "[mysql|postgres|redshift|sqlite]",
-  host     : "127.0.0.1",
-  port     : 3306,         // optional, defaults to database default
-  user     : "..",
-  password : "..",
-  query    : {
-    pool     : true|false,   // optional, false by default
-    debug    : true|false,   // optional, false by default
-    strdates : true|false    // optional, false by default
-  }
-};
-orm.connect(opts, function (err, db) {
-	// ...
-});
-```
-
-You can also avoid passing a callback and just listen for the connect event:
-
-```js
-var orm = require("orm");
-var db  = orm.connect("mysql://username:password@host/database");
-
-db.on("connect", function (err, db) {
-	// ...
-});
-```
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Connecting-to-Database).
 
 ## Models
 
@@ -191,48 +132,11 @@ Models support behaviours for accessing and manipulating table data.
 
 ## Defining Models
 
-Call `define` on the database connection to setup a model. The name of the table and model is used as an identifier for the model on the database connection, so you can easily access the model later using the connection.
-
-```js
-var Person = db.define('person', {        // 'person' will be the table in the database as well as the model id
-	// properties
-	name    : String,                     // you can use native objects to define the property type
-	surname : { type: "text", size: 50 }  // or you can be specific and define aditional options
-}, {
-	// options (optional)
-});
-```
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Defining-Models).
 
 ### Properties
 
-#### Types
-
-
- Native   | String     | Native   | String
- :--------|:-----------|:---------|:---------
- String   | 'text'     | Date     | 'date '
- Number   | 'number'   | Object   | 'object'
- Boolean  | 'boolean'  | Buffer   | 'binary'
-          |            |  ---     | 'enum'
-
-#### Options
-
-##### [all types]
-* `required`: true marks the column as `NOT NULL`, false (default)
-* `defaultValue`: sets the default value for the field
-
-##### string
-* `size`: max length of the string
-
-##### number
-* `rational`: true (default) creates a FLOAT/REAL, false an INTEGER
-* `size`: byte size of number, default is 4. Note that 8 byte numbers [have limitations](http://stackoverflow.com/questions/307179/what-is-javascripts-max-int-whats-the-highest-integer-value-a-number-can-go-t)
-* `unsigned`: true to make INTEGER unsigned, default is false
-
-##### date
-* `time`: true (default) creates a DATETIME/TIMESTAMP, false a DATE
-
-Note that these may vary accross drivers.
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Model-Properties).
 
 ### Instance Methods
 
@@ -313,24 +217,11 @@ module.exports = function (db, cb) {
 
 ## Synchronizing Models
 
-Models can create their underlying tables in the database. You may call Model.sync() on each Model to create the underlying table or you can call db.sync() at a connection level to create all tables for all models.
-
-```js
-// db.sync() can also be used
-Person.sync(function (err) {
-	!err && console.log("done!");
-});
-```
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Synching-and-Dropping-Models).
 
 ## Dropping Models
 
-If you want to drop a Model and remove all tables you can use the `.drop()` method.
-
-```js
-Person.drop(function (err) {
-	!err && console.log("person model no longer exists!");
-});
-```
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Synching-and-Dropping-Models).
 
 ## Advanced Options
 
@@ -357,6 +248,17 @@ var Pet = db.define("pet", {
 
 **Pet** model will have 2 columns, an `UID` and a `name`.
 
+It is also possible to have multiple IDs for a model in the database, this is done by specifying an array of IDs to use.
+
+```js
+var Person = db.define("person", {
+	firstname: String,
+	lastname: String
+}, {
+	id: ['firstname', 'lastname']
+});
+```
+
 Other options:
 
 - `cache` : (default: `true`) Set it to `false` to disable Instance cache ([Singletons](#singleton)) or set a timeout value (in seconds);
@@ -367,44 +269,7 @@ Other options:
 
 ## Hooks
 
-If you want to listen for a type of event than occurs in instances of a Model, you can attach a function that
-will be called when that event happens.
-
-Currently the following events are supported:
-
-- `afterLoad` : (no parameters) Right after loading and preparing an instance to be used;
-- `afterAutoFetch` : (no parameters) Right after auto-fetching associations (if any), it will trigger regardless of having associations or not;
-- `beforeSave` : (no parameters) Right before trying to save;
-- `afterSave` : (bool success) Right after saving;
-- `beforeCreate` : (no parameters) Right before trying to save a new instance (prior to `beforeSave`);
-- `afterCreate` : (bool success) Right after saving a new instance;
-- `beforeRemove` : (no parameters) Right before trying to remove an instance;
-- `afterRemove` : (bool success) Right after removing an instance;
-- `beforeValidation` : (no parameters) Before all validations and prior to `beforeCreate` and `beforeSave`;
-
-All hook function are called with `this` as the instance so you can access anything you want related to it.
-
-For all `before*` hooks, you can add an additional parameter to the hook function. This parameter will be a function that
-must be called to tell if the hook allows the execution to continue or to break. You might be familiar with this workflow
-already from Express. Here's an example:
-
-```js
-var Person = db.define("person", {
-	name    : String,
-	surname : String
-}, {
-	hooks: {
-		beforeCreate: function (next) {
-			if (this.surname == "Doe") {
-				return next(new Error("No Does allowed"));
-			}
-			return next();
-		}
-	}
-});
-```
-
-This workflow allows you to make asynchronous work before calling `next`.
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Model-Hooks).
 
 ## Finding Items
 
@@ -447,6 +312,8 @@ Person.find({ surname: "Doe" }, { offset: 2 }, function (err, people) {
 	// finds people with surname='Doe', skips the first 2 and returns the others
 });
 ```
+
+You can also use raw SQL when searching. It's documented in the *Chaining* section below.
 
 ### Model.count([ conditions, ] cb)
 
@@ -517,6 +384,21 @@ Person.find({ surname: "Doe" }).limit(3).offset(2).only("name", "surname").run(f
 });
 ```
 
+Chaining allows for more complicated queries. For example, we can search by specifying custom SQL:
+```js
+Person.find({ age: 18 }).where("LOWER(surname) LIKE ?", ['dea%']).all( ... );
+```
+It's bad practice to manually escape SQL parameters as it's error prone and exposes your application to SQL injection.
+The `?` syntax takes care of escaping for you, by safely substituting the question mark in the query with the parameters provided.
+You can also chain multiple `where` clauses as needed.
+
+You can also `order` or `orderRaw`:
+```js
+Person.find({ age: 18 }).order('-name').all( ... );
+// see the 'Raw queries' section below for more details
+Person.find({ age: 18 }).orderRaw("?? DESC", ['age']).all( ... );
+```
+
 You can also chain and just get the count in the end. In this case, offset, limit and order are ignored.
 
 ```js
@@ -585,7 +467,30 @@ a few examples to describe it:
 { col1: orm.lt(123) } // `col1` < 123
 { col1: orm.lte(123) } // `col1` <= 123
 { col1: orm.between(123, 456) } // `col1` BETWEEN 123 AND 456
+{ col1: orm.not_between(123, 456) } // `col1` NOT BETWEEN 123 AND 456
 { col1: orm.like(12 + "%") } // `col1` like '12%'
+```
+
+#### Raw queries
+
+```js
+db.driver.execQuery("SELECT id, email FROM user", function (err, data) { ... })
+
+// You can escape identifiers and values.
+// For identifier substitution use: ??
+// For value substitution use: ?
+db.driver.execQuery(
+  "SELECT user.??, user.?? FROM user WHERE user.?? LIKE ? AND user.?? > ?",
+  ['id', 'name', 'name', 'john', 'id', 55],
+  function (err, data) { ... }
+)
+
+// Identifiers don't need to be scaped most of the time
+db.driver.execQuery(
+  "SELECT user.id, user.name FROM user WHERE user.name LIKE ? AND user.id > ?",
+  ['john', 55],
+  function (err, data) { ... }
+)
 ```
 
 ### Caching & Integrity
@@ -681,126 +586,7 @@ Person.get(1, function (err, John) {
 
 ## Validations
 
-You can define validations for every property of a Model. You can have one or more validations for each property.
-You can also use the predefined validations or create your own.
-
-```js
-var Person = db.define("person", {
-	name : String,
-	age  : Number
-}, {
-	validations : {
-		name : orm.validators.rangeLength(1, undefined, "missing"), // "missing" is a name given to this validation, instead of default
-		age  : [ orm.validators.rangeNumber(0, 10), orm.validators.insideList([ 1, 3, 5, 7, 9 ]) ]
-	}
-});
-```
-
-The code above defines that the `name` length must be between 1 and undefined (undefined means any) and `age`
-must be a number between 0 and 10 (inclusive) but also one of the listed values. The example might not make sense
-but you get the point.
-
-When saving an item, if it fails to validate any of the defined validations you'll get an `error` object with the property
-name and validation error description. This description should help you identify what happened.
-
-```js
-var John = new Person({
-	name : "",
-	age : 20
-});
-John.save(function (err) {
-	// err.field = "name" , err.value = "" , err.msg = "missing"
-});
-```
-
-The validation stops after the first validation error. If you want it to validate every property and return all validation
-errors, you can change this behavior on global or local settings:
-
-```js
-var orm = require("orm");
-
-orm.settings.set("instance.returnAllErrors", true); // global or..
-
-orm.connect("....", function (err, db) {
-	db.settings.set("instance.returnAllErrors", true); // .. local
-
-	// ...
-
-	var John = new Person({
-		name : "",
-		age : 15
-	});
-	John.save(function (err) {
-		assert(Array.isArray(err));
-		// err[0].field = "name" , err[0].value = "" , err[0].msg = "missing"
-		// err[1].field = "age"  , err[1].value = 15 , err[1].msg = "out-of-range-number"
-		// err[2].field = "age"  , err[2].value = 15 , err[2].msg = "outside-list"
-	});
-});
-```
-
-### Predefined Validations
-
-Predefined validations accept an optional last parameter `msg` that is the `Error.msg` if it's triggered.
-
-#### `required(msg)`
-
-Ensures property is not `null` or `undefined`. It does not trigger any error if property is `0` or empty string.
-
-#### `rangeNumber(min, max, msg)`
-
-Ensures a property is a number between `min` and `max`. Any of the parameters can be passed as `undefined`
-to exclude a minimum or maximum value.
-
-#### `rangeLength(min, max, msg)`
-
-Same as previous validator but for property length (strings).
-
-#### `insideList(list, msg)`
-
-Ensures a property value is inside a list of values.
-
-#### `outsideList(list, msg)`
-
-Ensures a property value is not inside a list of values.
-
-#### `equalToProperty(property, msg)`
-
-Ensures a property value is not the same as another property value in the instance. This validator is good for example for
-password and password repetition check.
-
-#### `notEmptyString(msg)`
-
-This is an alias for `rangeLength(1, undefined, 'empty-string')`.
-
-#### `unique(msg)`
-
-Ensures there's not another instance in your database already with that property value. This validator is good for example for
-unique identifiers.
-
-#### `password([ checks, ]msg)`
-
-Ensures the property value has some defined types of characters, usually wanted in a password. `checks` is optional and
-defaults to `"luns6"` which leans `l`owercase letters, `u`ppercase letters, `n`umbers, `s`pecial characters, with a minimum
-length of `6`.
-
-#### `patterns.match(pattern, modifiers, msg)`
-
-Ensures the property value passes the regular expression pattern (and regex modifiers).
-
-The next `patterns.*` are comodity alias to this one.
-
-#### `patterns.hexString(msg)`
-
-Ensures the property value is an hexadecimal string (uppercase or lowercase).
-
-#### `patterns.email(msg)`
-
-Ensures the property value is a valid e-mail (more or less).
-
-#### `patterns.ipv4(msg)`
-
-Ensures the property value is a valid IPv4 address. It does not accept masks (example: `0` as last number is not valid).
+See information in the [wiki](https://github.com/dresende/node-orm2/wiki/Model-Validations).
 
 ## Associations
 
@@ -821,6 +607,14 @@ animal.hasOwner(function..)         // Checks if owner exists
 animal.removeOwner()                // Sets owner_id to 0
 ```
 
+**Chain Find**
+
+The hasOne association is also chain find compatible. Using the example above, we can do this to access a new instance of a ChainFind object:
+
+```js
+Animal.findByOwner({ /* options */ })
+```
+
 **Reverse access**
 
 ```js
@@ -830,8 +624,12 @@ Animal.hasOne('owner', Person, {reverse: 'pets'})
 will add the following:
 
 ```js
+// Instance methods
 person.getPets(function..)
 person.setPets(cat, function..)
+
+// Model methods
+Person.findByPets({ /* options */ }) // returns ChainFind object
 ```
 
 ### hasMany
@@ -868,6 +666,17 @@ patient.addDoctor(surgeon, {why: "remove appendix"}, function(err) { ... } )
 ```
 
 which will add `{patient_id: 4, doctor_id: 6, why: "remove appendix"}` to the join table.
+
+#### getAccessor
+
+This accessor in this type of association returns a `ChainFind` if not passing a callback. This means you can
+do things like:
+
+```js
+patient.getDoctors().order("name").offset(1).run(function (err, doctors), {
+	// ... all doctors, ordered by name, excluding first one
+});
+```
 
 ### extendsTo
 
@@ -908,7 +717,7 @@ Animal.hasOne("owner", Person); // creates column 'owner_id' in 'animal' table
 // get animal with id = 123
 Animal.get(123, function (err, animal) {
     // animal is the animal model instance, if found
-    Foo.getOwner(function (err, person) {
+    animal.getOwner(function (err, person) {
         // if animal has really an owner, person points to it
     });
 });
@@ -922,7 +731,7 @@ Animal.hasOne("owner", Person, { required: true });
 If you prefer to use another name for the field (owner_id) you can change this parameter in the settings.
 
 ```js
-db.settings.set("properties.association_key", "id_{name}"); // {name} will be replaced by 'owner' in this case
+db.settings.set("properties.association_key", "{field}_{name}"); // {name} will be replaced by 'owner' and {field} will be replaced by 'id' in this case
 ```
 
 **Note: This has to be done before the association is specified.**

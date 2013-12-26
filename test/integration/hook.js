@@ -119,6 +119,28 @@ describe("Hook", function() {
 			});
 		});
 
+		it("should allow modification of instance", function (done) {
+		    Person.beforeCreate(function (next) {
+		        this.name = "Hook Worked";
+		        next();
+		    });
+
+		    Person.create([{ }], function (err, people) {
+		        should.not.exist(err);
+		        should.exist(people);
+		        should.equal(people.length, 1);
+		        should.equal(people[0].name, "Hook Worked");
+
+		        // garantee it was correctly saved on database
+		        Person.one({ name: "Hook Worked" }, function (err, person) {
+		        	should.not.exist(err);
+		        	should.exist(person);
+
+		        	return done();
+		        });
+		    });
+		});
+
 		describe("when setting properties", function () {
 			before(setup({
 				beforeCreate : function () {
@@ -135,9 +157,9 @@ describe("Hook", function() {
 					items[0].name.should.equal("Jane Doe");
 
 					// ensure it was really saved
-					Person.get(items[0].id, function (err, Item) {
-						should.equal(err, null);
-						Item.name.should.equal("Jane Doe");
+					Person.find({ name: "Hook Worked" }, { cache: false }, 1, function (err, people) {
+						should.not.exist(err);
+						should(Array.isArray(people));
 
 						return done();
 					});
@@ -218,6 +240,27 @@ describe("Hook", function() {
 			});
 		});
 
+		it("should allow modification of instance", function (done) {
+		    Person.beforeSave(function () {
+		        this.name = "Hook Worked";
+		    });
+
+		    Person.create([{ name: "John Doe" }], function (err, people) {
+		        should.not.exist(err);
+		        should.exist(people);
+		        should.equal(people.length, 1);
+		        should.equal(people[0].name, "Hook Worked");
+
+				// garantee it was correctly saved on database
+				Person.find({ name: "Hook Worked" }, { cache: false }, 1, function (err, people) {
+					should.not.exist(err);
+					should(Array.isArray(people));
+
+					return done();
+				});
+		    });
+		});
+
 		describe("when setting properties", function () {
 			before(setup({
 				beforeSave : function () {
@@ -234,7 +277,7 @@ describe("Hook", function() {
 					items[0].name.should.equal("Jane Doe");
 
 					// ensure it was really saved
-					Person.get(items[0].id, function (err, Item) {
+					Person.get(items[0][Person.id], function (err, Item) {
 						should.equal(err, null);
 						Item.name.should.equal("Jane Doe");
 
@@ -339,6 +382,21 @@ describe("Hook", function() {
 			});
 		});
 
+
+		it("should allow modification of instance", function (done) {
+		    Person.beforeValidation(function () {
+		        this.name = "Hook Worked";
+		    });
+
+		    Person.create([{ name: "John Doe" }], function (err, people) {
+		        should.not.exist(err);
+		        should.exist(people);
+		        should.equal(people.length, 1);
+		        should.equal(people[0].name, "Hook Worked");
+		        done();
+		    });
+		});
+
 		describe("if hook method has 1 argument", function () {
 			var beforeValidation = false;
 			this.timeout(500);
@@ -428,6 +486,25 @@ describe("Hook", function() {
 					return done();
 				});
 			});
+
+			describe("if hook returns an error", function () {
+				before(setup({
+					afterLoad : function (next) {
+						return next(new Error("AFTERLOAD_FAIL"));
+					}
+				}));
+
+				it("should return error", function (done) {
+					this.timeout(500);
+
+					Person.create([{ name: "John Doe" }], function (err, items) {
+						err.should.exist;
+						err.message.should.equal("AFTERLOAD_FAIL");
+
+						return done();
+					});
+				});
+			});
 		});
 	});
 
@@ -468,6 +545,25 @@ describe("Hook", function() {
 					afterAutoFetch.should.be.true;
 
 					return done();
+				});
+			});
+
+			describe("if hook returns an error", function () {
+				before(setup({
+					afterAutoFetch : function (next) {
+						return next(new Error("AFTERAUTOFETCH_FAIL"));
+					}
+				}));
+
+				it("should return error", function (done) {
+					this.timeout(500);
+
+					Person.create([{ name: "John Doe" }], function (err, items) {
+						err.should.exist;
+						err.message.should.equal("AFTERAUTOFETCH_FAIL");
+
+						return done();
+					});
 				});
 			});
 		});
@@ -588,5 +684,32 @@ describe("Hook", function() {
 				}, 200);
 			});
 		});
+	});
+
+	describe("instance modifications", function () {
+	    before(setup({
+	        beforeValidation: function () {
+	            should.equal(this.name, "John Doe");
+	            this.name = "beforeValidation";
+	        },
+	        beforeCreate: function () {
+	            should.equal(this.name, "beforeValidation");
+	            this.name = "beforeCreate";
+	        },
+	        beforeSave: function () {
+	            should.equal(this.name, "beforeCreate");
+	            this.name = "beforeSave";
+	        }
+	    }));
+
+	    it("should propagate down hooks", function (done) {
+	        Person.create([{ name: "John Doe" }], function (err, people) {
+	            should.not.exist(err);
+	            should.exist(people);
+	            should.equal(people.length, 1);
+	            should.equal(people[0].name, "beforeSave");
+	            done();
+	        });
+	    });
 	});
 });

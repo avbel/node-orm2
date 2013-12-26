@@ -53,10 +53,13 @@ describe("Model keys option", function() {
 
 		before(function (done) {
 			DoorAccessHistory = db.define("door_access_history", {
+				year   : { type: 'number', rational: false },
+				month  : { type: 'number', rational: false },
+				day    : { type: 'number', rational: false },
 				user   : String,
 				action : [ "in", "out" ]
 			}, {
-				keys   : [ "year", "month", "day" ]
+				id   : [ "year", "month", "day" ]
 			});
 
 			return helper.dropSync(DoorAccessHistory, function () {
@@ -101,14 +104,6 @@ describe("Model keys option", function() {
 					});
 				});
 			})
-		});
-
-		it("should throw if defining hasMany association", function (done) {
-			(function () {
-				DoorAccessHistory.hasMany("...");
-			}).should.throw();
-
-			return done();
 		});
 	});
 });

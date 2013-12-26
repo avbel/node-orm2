@@ -1,4 +1,80 @@
-### v2.0.15 - 10 Jul 2013
+### v2.2.0 - (to do, in future)
+- Fixes error code spelling: `PARAM_MISSMATCH` -> `PARAM_MISMATCH`
+
+### v2.1.3 - 14 Oct 2013
+
+- Fixes connection strings being parsed by url module to don't forget about port :) (#355)
+- Fixes tests common.getConnectionString to use common.getConfig
+- Converts indentation from spaces:2 to tabs
+- Removes unnecessary path requirement in ORM.js
+- Changes user methods to be writeable property instances (fixes #296)
+- Fixes afterAutoFetch next(err) bubling up just like afterLoad (#301)
+- Fixes cache for hasOne associations (#339)
+- Adds findByAssociation to extendsTo (#314)
+- Fixes Model.extendsTo autoFetch not working (throwing) (#323)
+- Adds hasMany hooks.beforeSave (#324)
+
+### v2.1.2 - 16 Sep 2013
+
+- Fixes stack overflow on instance.save() with a reversed hasOne association (#338)
+- Reverts should dev dependency to 1.2.2 (newer version was causing problems)
+- When using postgres you can now use pg@2.6.2 (unless when connecting to Heroku - use 2.5.0)
+
+### v2.1.1 - 13 Sep 2013
+
+- Add TypeScript interface
+- Allow custom join tables (#276)
+- Fixes stack overflow when saving auto-fetched model with relations (#279)
+- Unique validator can be scoped and case insensitive (#288)
+- Allow async express middleware (#291)
+- Allow finding by associations (#293)
+- Fix sqlite find with boolean (#292)
+- Fix `afterLoad` hook error handling (#301)
+- Allow auto-escaping for custom queries (#304)
+- Add support for custom property types (#305)
+- Allow ordering by raw sql - .orderRaw() when chaining (#308, #311)
+- Fix saving Instance.extra fields (#312)
+- Fix `NaN` handling (#310)
+- Fix incorrect SQL query (#313)
+- Deprecated `PARAM_MISSMATCH` ErrorCode in favour of correctly spelt `PARAM_MISMATCH` (#315)
+- Add promises to query chain (#316)
+- Adds a test for hasMany.delAccessor with arguments switched (#320)
+- Allow passing timezone in database connection string, local timezone is now default (#325, #303)
+- Adds ability to call db.load() with multiple files (closes #329)
+- For mysql driver, when using pool, use con.release() instead of con.end() (if defined) (closes #335)
+- Passes error from afterLoad hook to ready event
+- Most errors now have a model property
+- Adds connection.pool and connection.debug settings
+- Fixes throw when calling ChainFind.first() or .last() and it has an error
+- Removes upper limit on VARCHAR column size
+- Allows multi-key models to support hasMany
+
+### v2.1.0 - 3 Aug 2013
+
+- Adds License (MIT) file (closes #271)
+- Make Model.get respect Model autoFetch default value (#277)
+- Changes the way ":" is added to sqlite db paths (#270)
+- Fixes duplicated debug lines for postgres (#258)
+- Fixes not saving associations if no changes (other than associations) are made (#256)
+- Fixes autoFetch being discarded in Model.get options (closes #266)
+- Adds beforeDefine to plugins (#263)
+- Allows user to pass an object to extendsTo.setAccessor instead of an instance (detected via #250)
+- Changes autoFetch to avoid autofetching if instance is not saved (it's new!) (#242)
+- Changes validations and predefined validators to use enforce@0.1.1
+- Adds support for setting properties.association_key to be a function (name, field)
+- Passes connection settings to database drivers
+- Creates initial mongodb driver and 'mongo' driver alias
+- Allow querying chainfind with sql conditions
+- Allow passing extra options to extended models
+- Allow big text fields
+- Allow before* hooks to modify the instance
+- Fixes #226 - hasOne delAccessor not working
+- Adds Utilities.getRealPath to look for the real path to load based on the file where it was called from (for db.load and db.use)
+- Fixes Model.aggregate().call() to accept no arguments except function name
+- Fix problem with extendsTo and custom key types
+- Better association typing and multikey support
+
+### v2.0.15 - 10 July 2013
 
 - Support for 'point' type as a property (#221)
 - .call() in aggregates for generic functions (#204)

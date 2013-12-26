@@ -1,5 +1,6 @@
 var should   = require('should');
 var helper   = require('../support/spec_helper');
+var common   = require('../common');
 var ORM      = require('../../');
 
 describe("Model.save()", function() {
@@ -54,12 +55,12 @@ describe("Model.save()", function() {
 			});
 			John.save(function (err) {
 				should.equal(err, null);
-				John.id.should.be.a("number");
+				should.exist(John[Person.id]);
 
-				Person.get(John.id, function (err, JohnCopy) {
+				Person.get(John[Person.id], function (err, JohnCopy) {
 					should.equal(err, null);
 
-					JohnCopy.id.should.equal(John.id);
+					JohnCopy[Person.id].should.equal(John[Person.id]);
 					JohnCopy.name.should.equal(John.name);
 
 					return done();
@@ -78,12 +79,12 @@ describe("Model.save()", function() {
 			John.save();
 			John.on("save", function (err) {
 				should.equal(err, null);
-				John.id.should.be.a("number");
+				should.exist(John[Person.id]);
 
-				Person.get(John.id, function (err, JohnCopy) {
+				Person.get(John[Person.id], function (err, JohnCopy) {
 					should.equal(err, null);
 
-					JohnCopy.id.should.equal(John.id);
+					JohnCopy[Person.id].should.equal(John[Person.id]);
 					JohnCopy.name.should.equal(John.name);
 
 					return done();
@@ -101,13 +102,13 @@ describe("Model.save()", function() {
 			});
 			John.save({ name: "John" }, function (err) {
 				should.equal(err, null);
-				John.id.should.be.a("number");
+				should.exist(John[Person.id]);
 				John.name.should.equal("John");
 
-				Person.get(John.id, function (err, JohnCopy) {
+				Person.get(John[Person.id], function (err, JohnCopy) {
 					should.equal(err, null);
 
-					JohnCopy.id.should.equal(John.id);
+					JohnCopy[Person.id].should.equal(John[Person.id]);
 					JohnCopy.name.should.equal(John.name);
 
 					return done();
@@ -147,8 +148,8 @@ describe("Model.save()", function() {
 				John.saved().should.be.true;
 				Jane.saved().should.be.true;
 
-				John.id.should.be.a("number");
-				Jane.id.should.be.a("number");
+				should.exist(John[Person.id]);
+				should.exist(Jane[Person.id]);
 
 				return done();
 			});
@@ -170,8 +171,8 @@ describe("Model.save()", function() {
 				John.saved().should.be.true;
 				John.parent.saved().should.be.true;
 
-				John.id.should.be.a("number");
-				John.parent.id.should.be.a("number");
+				should.exist(John[Person.id]);
+				should.exist(John.parent[Person.id]);
 
 				return done();
 			});
@@ -198,12 +199,10 @@ describe("Model.save()", function() {
 	});
 
 	describe("with a point property", function () {
-		it("should save the instance as a geospatial point", function (done) {
-			setup({ type: "point" }, null)(function (err) {
-				if (err) {
-					return done(); // not supported
-				}
+		if (common.protocol() == 'sqlite' || common.protocol() == 'mongodb') return;
 
+		it("should save the instance as a geospatial point", function (done) {
+			setup({ type: "point" }, null)(function () {
 				var John = new Person({
 					name: { x: 51.5177, y: -0.0968 }
 				});
@@ -217,5 +216,39 @@ describe("Model.save()", function() {
 				});
 			});
 		});
+	});
+
+	describe("mockable", function() {
+		before(setup());
+
+		it("save should be writable", function(done) {
+			var John = new Person({
+				name: "John"
+			});
+			var saveCalled = false;
+			John.save = function(cb) {
+				saveCalled = true;
+				cb(null);
+			};
+			John.save(function(err) {
+				should.equal(saveCalled,true);
+				return done();
+			});
+		});
+
+		it("saved should be writable", function(done) {
+			var John = new Person({
+				name: "John"
+			});
+			var savedCalled = false;
+			John.saved = function() {
+				savedCalled = true;
+				return true;
+			};
+
+			John.saved()
+			savedCalled.should.be.true;
+			done();
+		})
 	});
 });

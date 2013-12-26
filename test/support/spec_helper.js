@@ -1,8 +1,15 @@
 var common = require('../common');
 var async  = require('async');
+var should = require('should');
 
 module.exports.connect = function(cb) {
-	common.createConnection(function (err, conn) {
+	var opts = {};
+
+	if (1 in arguments) {
+		opts = arguments[0];
+		cb   = arguments[1];
+	}
+	common.createConnection(opts, function (err, conn) {
 		if (err) throw err;
 		cb(conn);
 	});
@@ -19,5 +26,10 @@ module.exports.dropSync = function (models, done) {
 
 			item.sync(cb);
 		});
-	}, done);
+	}, function (err) {
+		if (common.protocol() != 'sqlite') {
+			should.not.exist(err);
+		}
+		done(err);
+	});
 };

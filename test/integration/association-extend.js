@@ -48,7 +48,7 @@ describe("Model.extendsTo()", function() {
 		before(setup());
 
 		it("should return true if found", function (done) {
-			Person.get(1, function (err, John) {
+			Person.find().first(function (err, John) {
 				should.equal(err, null);
 
 				John.hasAddress(function (err, hasAddress) {
@@ -61,7 +61,7 @@ describe("Model.extendsTo()", function() {
 		});
 
 		it("should return false if not found", function (done) {
-			Person.get(1, function (err, John) {
+			Person.find().first(function (err, John) {
 				should.equal(err, null);
 
 				John.removeAddress(function () {
@@ -92,7 +92,7 @@ describe("Model.extendsTo()", function() {
 		before(setup());
 
 		it("should return extension if found", function (done) {
-			Person.get(1, function (err, John) {
+			Person.find().first(function (err, John) {
 				should.equal(err, null);
 
 				John.getAddress(function (err, Address) {
@@ -106,7 +106,7 @@ describe("Model.extendsTo()", function() {
 		});
 
 		it("should return error if not found", function (done) {
-			Person.get(1, function (err, John) {
+			Person.find().first(function (err, John) {
 				should.equal(err, null);
 
 				John.removeAddress(function () {
@@ -137,7 +137,7 @@ describe("Model.extendsTo()", function() {
 		before(setup());
 
 		it("should remove any previous extension", function (done) {
-			Person.get(1, function (err, John) {
+			Person.find().first(function (err, John) {
 				should.equal(err, null);
 
 				PersonAddress.find({ number: 123 }).count(function (err, c) {
@@ -174,7 +174,7 @@ describe("Model.extendsTo()", function() {
 		before(setup());
 
 		it("should remove any extension", function (done) {
-			Person.get(1, function (err, John) {
+			Person.find().first(function (err, John) {
 				should.equal(err, null);
 
 				PersonAddress.find({ number: 123 }).count(function (err, c) {
@@ -210,6 +210,39 @@ describe("Model.extendsTo()", function() {
 
 				return done();
 			});
+		});
+	});
+
+	describe("findBy()", function () {
+		before(setup());
+
+		it("should throw if no conditions passed", function (done) {
+			(function () {
+				Person.findByAddress(function () {});
+			}).should.throw();
+
+			return done();
+		});
+
+		it("should lookup in Model based on associated model properties", function (done) {
+			Person.findByAddress({
+				number: 123
+			}, function (err, people) {
+				should.equal(err, null);
+				should(Array.isArray(people));
+				should(people.length == 1);
+
+				return done();
+			});
+		});
+
+		it("should return a ChainFind if no callback passed", function (done) {
+			var ChainFind = Person.findByAddress({
+				number: 123
+			});
+			ChainFind.run.should.be.a("function");
+
+			return done();
 		});
 	});
 });

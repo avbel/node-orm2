@@ -6,20 +6,6 @@ var common   = require('../common');
 var ORM      = require('../../');
 
 describe("ORM", function() {
-	var db = null;
-
-	before(function (done) {
-		helper.connect(function (connection) {
-			db = connection;
-
-			return done();
-		});
-	});
-
-	after(function () {
-		return db.close();
-	});
-
 	describe("when loaded", function () {
 		it("should expose .express(), .use() and .connect()", function (done) {
 			ORM.express.should.a("function");
@@ -204,6 +190,15 @@ describe("ORM.connect()", function () {
 				return done();
 			});
 		});
+
+		it("should allow pool and debug settings to be false", function(done) {
+			var connString = common.getConnectionString() + "debug=false&pool=false";
+			ORM.connect(connString, function(err, db) {
+				db.driver.opts.pool.should.equal(false);
+				db.driver.opts.debug.should.equal(false);
+				done();
+			});
+		});
 	});
 });
 
@@ -212,7 +207,7 @@ describe("ORM.use()", function () {
 		var db = new sqlite.Database(':memory:');
 
 		ORM.use(db, "sqlite", function (err) {
-			should.equal(err, null);
+			should.not.exist(err);
 
 			return done();
 		});
